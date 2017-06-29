@@ -44,6 +44,10 @@ class FetchView(SessionOrBasicAuthMixin, DetailView):
 
     model = Document
 
+    def __init__(self):
+        super().__init__()
+        self.disposition = "attachment"
+
     def render_to_response(self, context, **response_kwargs):
         """
         Override the default to return the unencrypted image/PDF as raw data.
@@ -67,10 +71,18 @@ class FetchView(SessionOrBasicAuthMixin, DetailView):
             GnuPG.decrypted(self.object.source_file),
             content_type=content_types[self.object.file_type]
         )
-        response["Content-Disposition"] = 'attachment; filename="{}"'.format(
-            self.object.file_name)
+
+        response["Content-Disposition"] = '{}; filename="{}"'.format(
+            self.disposition, self.object.file_name)
 
         return response
+
+
+class InlineView(FetchView):
+    """View documents inline as opposed to as a download."""
+    def __init__(self):
+        super().__init__()
+        self.disposition = "inline"
 
 
 class PushView(SessionOrBasicAuthMixin, FormView):
