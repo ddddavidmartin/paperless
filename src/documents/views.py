@@ -40,49 +40,59 @@ class IndexView(TemplateView):
         return TemplateView.get_context_data(self, **kwargs)
 
 
-class FetchView(SessionOrBasicAuthMixin, DetailView):
+class _DocumentView(SessionOrBasicAuthMixin, DetailView):
+    """Base View class to return documents."""
 
     model = Document
 
-    def __init__(self):
+    def __init__(self, disposition):
         super().__init__()
-        self.disposition = "attachment"
-
-    def render_to_response(self, context, **response_kwargs):
-        """
-        Override the default to return the unencrypted image/PDF as raw data.
-        """
-
-        content_types = {
+        self.content_types = {
             Document.TYPE_PDF: "application/pdf",
             Document.TYPE_PNG: "image/png",
             Document.TYPE_JPG: "image/jpeg",
             Document.TYPE_GIF: "image/gif",
             Document.TYPE_TIF: "image/tiff",
         }
+        self.disposition = disposition
 
-        if self.kwargs["kind"] == "thumb":
-            return HttpResponse(
-                GnuPG.decrypted(self.object.thumbnail_file),
-                content_type=content_types[Document.TYPE_PNG]
-            )
-
+    def render_to_response(self, context, **response_kwargs):
+        """
+        Override the default to return the unencrypted image/PDF as raw data.
+        """
         response = HttpResponse(
             GnuPG.decrypted(self.object.source_file),
-            content_type=content_types[self.object.file_type]
+            content_type=self.content_types[self.object.file_type]
         )
-
         response["Content-Disposition"] = '{}; filename="{}"'.format(
             self.disposition, self.object.file_name)
 
         return response
 
 
-class InlineView(FetchView):
-    """View documents inline as opposed to as a download."""
+class FetchView(_DocumentView):
+    """Return a download of the requested document."""
+
     def __init__(self):
-        super().__init__()
-        self.disposition = "inline"
+        super().__init__("attachment")
+
+
+class InlineView(_DocumentView):
+    """View requested document inline as opposed to as a download."""
+
+    def __init__(self):
+        super().__init__("inline")
+
+
+class ThumbnailView(SessionOrBasicAuthMixin, DetailView):
+    """Return the thumbnail of the requested document."""
+    model = Document
+
+    def render_to_response(self, context, **_):
+        return HttpResponse(
+            GnuPG.decrypted(self.object.thumbnail_file),
+            content_type="image/png"
+        )
 
 
 class PushView(SessionOrBasicAuthMixin, FormView):

@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.routers import DefaultRouter
 
 from documents.views import (
-    FetchView, InlineView, PushView,
+    FetchView, InlineView, PushView, ThumbnailView,
     CorrespondentViewSet, TagViewSet, DocumentViewSet, LogViewSet
 )
 from reminders.views import ReminderViewSet
@@ -29,7 +29,7 @@ urlpatterns = [
 
     # File downloads
     url(
-        r"^fetch/(?P<kind>doc|thumb)/(?P<pk>\d+)$",
+        r"^fetch/(?P<kind>doc)/(?P<pk>\d+)$",
         FetchView.as_view(),
         name="fetch"
     ),
@@ -39,6 +39,13 @@ urlpatterns = [
         r"^view/(?P<kind>doc)/(?P<pk>\d+)$",
         InlineView.as_view(),
         name="view"
+    ),
+
+    # Thumbnail view
+    url(
+        r"^fetch/(?P<kind>thumb)/(?P<pk>\d+)$",
+        ThumbnailView.as_view(),
+        name="thumbnail"
     ),
 
     # File uploads
